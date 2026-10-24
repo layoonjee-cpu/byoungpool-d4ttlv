@@ -46,7 +46,7 @@ header{padding:10px 14px 8px;background:#fffaf0;border-bottom:2px solid #eadfca}
 .tigerimg{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 8px rgba(47,93,58,.25)}
 .hero{background:linear-gradient(#e4f0d4,#cfe3b5)}
 .hero-img{position:absolute;left:0;right:0;top:0;bottom:40%;background:url(assets/tiger-hero.jpg) center 80%/cover}
-.talk .tg{width:58px;flex:none;animation:bob 2s ease-in-out infinite}
+.talk .tg{pointer-events:auto;cursor:pointer;position:relative;width:58px;flex:none;animation:bob 2s ease-in-out infinite}
 .bubble{background:#fff;border-radius:16px;padding:9px 13px;font-size:15px;line-height:1.35;box-shadow:0 3px 0 rgba(0,0,0,.08);position:relative;margin-top:6px}
 .bubble:before{content:'';position:absolute;left:-7px;top:14px;border:7px solid transparent;border-right-color:#fff;border-left:0}
 .bubble.pop{animation:pop .3s}
@@ -150,6 +150,8 @@ header{padding:10px 14px 8px;background:#fffaf0;border-bottom:2px solid #eadfca}
 .ticon svg{width:38px;height:30px}
 .ticon.emo{font-size:30px;line-height:1}
 .btn.wide{flex-basis:100%}
+.talk .tg.home-link:after{content:'🏠';position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#fff;font-size:13px;line-height:22px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.talk .tg:active{transform:scale(.92)}
 </style>
 </head>
 <body>
@@ -301,6 +303,8 @@ const STR={
  stDrums:['🛢️ 병풀잎수 벌크: <b>{0}통</b> (넘침 {1}회)','🛢️ Bulk drums: <b>{0}</b> (overflow ×{1})','🛢️ バルク:<b>{0}缶</b>(あふれ{1}回)','🛢️ 散裝桶:<b>{0} 桶</b>(溢出 {1} 次)','🛢️ 散装桶:<b>{0} 桶</b>(溢出 {1} 次)'],
  stBottles:['🧴 충전 부스터: <b>{0}병</b> (실수 {1}회)','🧴 Boosters filled: <b>{0}</b> (misses ×{1})','🧴 充填ブースター:<b>{0}本</b>(ミス{1}回)','🧴 充填精華:<b>{0} 瓶</b>(失誤 {1} 次)','🧴 灌装精华:<b>{0} 瓶</b>(失误 {1} 次)'],
  stScore:['⭐ 총점: <b>{0}</b>','⭐ Score: <b>{0}</b>','⭐ 合計:<b>{0}</b>','⭐ 總分:<b>{0}</b>','⭐ 总分:<b>{0}</b>'],
+ goHome:['호랑이 케어 화면으로 돌아갈까요?\n지금 진행 중인 게임은 처음부터 다시 시작돼요.','Go back to the tiger care screen?\nYour current game progress will be reset.','トラのお世話画面に戻りますか?\n今のゲームの進行はリセットされます。','要回到老虎照顧畫面嗎?\n目前的遊戲進度會重新開始。','要回到老虎照顾画面吗?\n当前的游戏进度会重新开始。'],
+ homeTip:['호랑이 케어로 돌아가기','Back to tiger care','トラのお世話へ戻る','回到老虎照顧','回到老虎照顾'],
  again:['🐯 처음으로','🐯 Back Home','🐯 ホームへ','🐯 回到首頁','🐯 回到首页']
 };
 let lang='ko',lastSay=null,curStep=-1;
@@ -324,7 +328,7 @@ function addScore(n,x,y){S.score=Math.max(0,S.score+n);$('#score').textContent=S
 function floatText(x,y,t){const e=document.createElement('div');e.className='float';e.textContent=t;e.style.left=x+'px';e.style.top=y+'px';scene.appendChild(e);setTimeout(()=>e.remove(),1000)}
 function rel(el){const a=el.getBoundingClientRect(),b=scene.getBoundingClientRect();return{x:a.left-b.left,y:a.top-b.top,w:a.width,h:a.height}}
 const TALK=`<div class="talk"><div class="tg">${TIGER}</div><div class="bubble" id="bubble"></div></div>`;
-function say(k,...a){lastSay=[k,...a];const b=$('#bubble');if(!b)return;b.innerHTML=t(k,...a);b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}
+function say(k,...a){lastSay=[k,...a];const g=$('.talk .tg');if(g){g.classList.toggle('home-link',curStep>=0);g.title=curStep>=0?t('homeTip'):''}const b=$('#bubble');if(!b)return;b.innerHTML=t(k,...a);b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}
 function setStep(n){curStep=n;$('#steps').innerHTML=['s1','s2','s3','s4','s5'].map((k,i)=>`<div class="${i<n?'done':i===n?'on':''}">${t(k)}</div>`).join('')}
 function btn(html,cls='',onClick){const b=document.createElement('button');b.className='btn '+cls;b.innerHTML=html;if(onClick)b.onclick=onClick;controls.appendChild(b);return b}
 function hold(b,cb){const on=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}b.classList.add('held');cb(true)},off=()=>{b.classList.remove('held');cb(false)};b.addEventListener('pointerdown',on);['pointerup','pointercancel','lostpointercapture'].forEach(v=>b.addEventListener(v,off))}
@@ -594,6 +598,9 @@ function stageEnd(){
   ding();later(()=>ding(),300);
   btn(L('again'),'big',home);
 }
+// round tiger avatar: back to the care home from any stage
+document.addEventListener('click',e=>{if(!e.target.closest('.talk .tg')||curStep<0)return;
+  if(curStep<5&&!confirm(t('goHome')))return;beep(520,.08);home()});
 document.documentElement.lang=HTML_LANG[lang];renderLangs();home();
 </script>
 </body>
